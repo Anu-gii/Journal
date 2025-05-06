@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nebula Journal | Futuristic Digital Diary</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-purple: #bc13fe;
+            --neon-green: #13febd;
+            --dark-bg: #0a0a0a;
+        }
+        
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background-color: var(--dark-bg);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .neon-purple {
+            color: var(--neon-purple);
+            text-shadow: 0 0 5px var(--neon-purple), 0 0 10px var(--neon-purple);
+        }
+        
+        .neon-green {
+            color: var(--neon-green);
+            text-shadow: 0 0 5px var(--neon-green), 0 0 10px var(--neon-green);
+        }
+        
+        .neon-purple-glow {
+            box-shadow: 0 0 10px var(--neon-purple), 0 0 20px var(--neon-purple);
+        }
+        
+        .neon-green-glow {
+            box-shadow: 0 0 10px var(--neon-green), 0 0 20px var(--neon-green);
+        }
+        
+        .neon-border {
+            border: 1px solid var(--neon-purple);
+            box-shadow: 0 0 10px var(--neon-purple), inset 0 0 10px var(--neon-purple);
+        }
+        
+        .entry-card {
+            transition: all 0.3s ease;
+            background: rgba(10, 10, 10, 0.8);
+            border: 1px solid var(--neon-purple);
+        }
+        
+        .entry-card:hover {
+            transform: scale(1.03);
+            box-shadow: 0 0 15px var(--neon-purple), 0 0 30px var(--neon-purple);
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(188, 19, 254, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(188, 19, 254, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(188, 19, 254, 0);
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .slide-down {
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from { 
+                max-height: 0;
+                opacity: 0;
+            }
+            to { 
+                max-height: 500px;
+                opacity: 1;
+            }
+        }
+        
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        
+        .collapsible-content.expanded {
+            max-height: 1000px;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--neon-purple);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--neon-green);
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .journal-container {
+                padding: 0.5rem;
+            }
+            
+            .entry-card {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Main Container -->
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header -->
+        <header class="text-center mb-12 fade-in">
+            <h1 class="text-4xl md:text-6xl font-bold neon-purple mb-4">NEBULA JOURNAL</h1>
+            <p class="text-lg neon-green">Chronicle your thoughts across the digital cosmos</p>
+        </header>
+        
+        <!-- Search and Add Entry -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <div class="w-full md:w-1/2">
+                <input type="date" id="searchDate" class="w-full bg-black neon-border rounded-lg px-4 py-2 focus:outline-none focus:neon-green-glow text-white" placeholder="Search by date...">
+            </div>
+            <button id="addEntryBtn" class="w-full md:w-auto bg-black neon-border hover:neon-purple-glow px-6 py-2 rounded-lg font-bold pulse transition-all duration-300">
+                + ADD NEW ENTRY
+            </button>
+        </div>
+        
+        <!-- Journal Entries Container -->
+        <div id="journalContainer" class="space-y-6">
+            <!-- Entries will be dynamically inserted here -->
+        </div>
+        
+        <!-- No Entries Message -->
+        <div id="noEntries" class="text-center py-12 neon-purple text-xl">
+            <p>No journal entries yet. Start your journey by adding your first entry!</p>
+        </div>
+    </div>
+    
+    <!-- Add/Edit Entry Modal -->
+    <div id="entryModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+        <div class="bg-black neon-border rounded-lg p-6 w-full max-w-2xl mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl neon-purple" id="modalTitle">NEW ENTRY</h2>
+                <button id="closeModal" class="neon-green hover:text-white">&times;</button>
+            </div>
+            
+            <form id="entryForm">
+                <input type="hidden" id="entryId">
+                <div class="mb-4">
+                    <label for="entryDate" class="block neon-green mb-2">Date</label>
+                    <input type="date" id="entryDate" required class="w-full bg-black neon-border rounded-lg px-4 py-2 focus:outline-none focus:neon-green-glow text-white">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="entryTitle" class="block neon-green mb-2">Title</label>
+                    <input type="text" id="entryTitle" required class="w-full bg-black neon-border rounded-lg px-4 py-2 focus:outline-none focus:neon-green-glow text-white" placeholder="Entry title...">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="entryQuote" class="block neon-green mb-2">Quote/Paragraph</label>
+                    <textarea id="entryQuote" class="w-full bg-black neon-border rounded-lg px-4 py-2 focus:outline-none focus:neon-green-glow text-white h-24" placeholder="Inspirational quote or paragraph..."></textarea>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="entryContent" class="block neon-green mb-2">Thoughts</label>
+                    <textarea id="entryContent" required class="w-full bg-black neon-border rounded-lg px-4 py-2 focus:outline-none focus:neon-green-glow text-white h-32" placeholder="Your thoughts and reflections..."></textarea>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="entrySummary" class="block neon-green mb-2">Summary (Optional)</label>
+                    <textarea id="entrySummary" class="w-full bg-black neon-border rounded-lg px-4 py-2 focus:outline-none focus:neon-green-glow text-white h-24" placeholder="Key takeaways or summary..."></textarea>
+                </div>
+                
+                <div class="flex justify-end gap-4">
+                    <button type="button" id="cancelEntry" class="px-4 py-2 neon-border rounded-lg hover:bg-purple-900 transition">Cancel</button>
+                    <button type="submit" class="px-6 py-2 bg-black neon-border hover:neon-purple-glow rounded-lg font-bold">Save Entry</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- View Entry Modal -->
+    <div id="viewModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+        <div class="bg-black neon-border rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl neon-purple" id="viewTitle">ENTRY DETAILS</h2>
+                <button id="closeViewModal" class="neon-green hover:text-white">&times;</button>
+            </div>
+            
+            <div class="mb-6">
+                <p class="neon-green text-sm" id="viewDate"></p>
+                <h3 class="text-xl neon-purple mt-1" id="viewEntryTitle"></h3>
+            </div>
+            
+            <div class="mb-4">
+                <p class="neon-green mb-1">Quote/Paragraph:</p>
+                <p class="text-gray-300" id="viewQuote"></p>
+            </div>
+            
+            <div class="mb-4">
+                <p class="neon-green mb-1">Thoughts:</p>
+                <p class="text-gray-300 whitespace-pre-line" id="viewContent"></p>
+            </div>
+            
+            <div class="mb-6">
+                <div class="flex items-center cursor-pointer" id="toggleSummary">
+                    <p class="neon-green mr-2">Summary:</p>
+                    <span class="text-xs">(click to toggle)</span>
+                </div>
+                <div class="collapsible-content" id="viewSummaryContainer">
+                    <p class="text-gray-300 mt-2 whitespace-pre-line" id="viewSummary"></p>
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-4 pt-4 border-t border-purple-900">
+                <button id="editEntryBtn" class="px-4 py-2 neon-border rounded-lg hover:bg-purple-900 transition">Edit</button>
+                <button id="deleteEntryBtn" class="px-4 py-2 bg-red-900 border border-red-500 rounded-lg hover:bg-red-800 transition">Delete</button>
+                <button id="closeViewBtn" class="px-4 py-2 neon-border rounded-lg hover:bg-purple-900 transition">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Backup/Restore Modal -->
+    <div id="backupModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+        <div class="bg-black neon-border rounded-lg p-6 w-full max-w-2xl mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl neon-purple">DATA BACKUP</h2>
+                <button id="closeBackupModal" class="neon-green hover:text-white">&times;</button>
+            </div>
+            
+            <div class="mb-6">
+                <p class="neon-green mb-4">Backup your journal entries or restore from a previous backup.</p>
+                
+                <div class="flex flex-col md:flex-row gap-4 mb-6">
+                    <button id="exportBtn" class="flex-1 neon-border py-3 rounded-lg hover:neon-purple-glow transition">
+                        <span class="neon-green">Export Backup</span>
+                    </button>
+                    <button id="importBtn" class="flex-1 neon-border py-3 rounded-lg hover:neon-purple-glow transition">
+                        <span class="neon-green">Import Backup</span>
+                    </button>
+                </div>
+                
+                <input type="file" id="importFile" class="hidden" accept=".json">
+                
+                <div class="mt-4 pt-4 border-t border-purple-900">
+                    <button id="closeBackupBtn" class="px-4 py-2 neon-border rounded-lg hover:bg-purple-900 transition">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Backup/Restore Button (Fixed position) -->
+    <button id="backupBtn" class="fixed bottom-6 right-6 neon-border rounded-full p-3 hover:neon-purple-glow transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 neon-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+    </button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const journalContainer = document.getElementById('journalContainer');
+            const noEntries = document.getElementById('noEntries');
+            const addEntryBtn = document.getElementById('addEntryBtn');
+            const searchDate = document.getElementById('searchDate');
+            const entryModal = document.getElementById('entryModal');
+            const viewModal = document.getElementById('viewModal');
+            const backupModal = document.getElementById('backupModal');
+            const closeModal = document.getElementById('closeModal');
+            const closeViewModal = document.getElementById('closeViewModal');
+            const closeBackupModal = document.getElementById('closeBackupModal');
+            const cancelEntry = document.getElementById('cancelEntry');
+            const entryForm = document.getElementById('entryForm');
+            const backupBtn = document.getElementById('backupBtn');
+            const exportBtn = document.getElementById('exportBtn');
+            const importBtn = document.getElementById('importBtn');
+            const importFile = document.getElementById('importFile');
+            const closeBackupBtn = document.getElementById('closeBackupBtn');
+            const closeViewBtn = document.getElementById('closeViewBtn');
+            const editEntryBtn = document.getElementById('editEntryBtn');
+            const deleteEntryBtn = document.getElementById('deleteEntryBtn');
+            const toggleSummary = document.getElementById('toggleSummary');
+            const viewSummaryContainer = document.getElementById('viewSummaryContainer');
+            
+            // Form fields
+            const entryId = document.getElementById('entryId');
+            const entryDate = document.getElementById('entryDate');
+            const entryTitle = document.getElementById('entryTitle');
+            const entryQuote = document.getElementById('entryQuote');
+            const entryContent = document.getElementById('entryContent');
+            const entrySummary = document.getElementById('entrySummary');
+            
+            // View modal fields
+            const viewTitle = document.getElementById('viewTitle');
+            const viewDate = document.getElementById('viewDate');
+            const viewEntryTitle = document.getElementById('viewEntryTitle');
+            const viewQuote = document.getElementById('viewQuote');
+            const viewContent = document.getElementById('viewContent');
+            const viewSummary = document.getElementById('viewSummary');
+            
+            // State
+            let currentViewEntryId = null;
+            let entries = JSON.parse(localStorage.getItem('nebulaJournalEntries')) || [];
+            
+            // Initialize
+            renderJournalEntries();
+            updateNoEntriesMessage();
+            
+            // Set today's date as default
+            const today = new Date();
+            const todayFormatted = today.toISOString().split('T')[0];
+            entryDate.value = todayFormatted;
+            searchDate.value = '';
+            
+            // Event Listeners
+            addEntryBtn.addEventListener('click', () => {
+                entryId.value = '';
+                entryForm.reset();
+                entryDate.value = todayFormatted;
+                document.getElementById('modalTitle').textContent = 'NEW ENTRY';
+                entryModal.classList.remove('hidden');
+            });
+            
+            closeModal.addEventListener('click', () => {
+                entryModal.classList.add('hidden');
+            });
+            
+            closeViewModal.addEventListener('click', () => {
+                viewModal.classList.add('hidden');
+            });
+            
+            closeBackupModal.addEventListener('click', () => {
+                backupModal.classList.add('hidden');
+            });
+            
+            cancelEntry.addEventListener('click', () => {
+                entryModal.classList.add('hidden');
+            });
+            
+            closeViewBtn.addEventListener('click', () => {
+                viewModal.classList.add('hidden');
+            });
+            
+            closeBackupBtn.addEventListener('click', () => {
+                backupModal.classList.add('hidden');
+            });
+            
+            backupBtn.addEventListener('click', () => {
+                backupModal.classList.remove('hidden');
+            });
+            
+            exportBtn.addEventListener('click', exportEntries);
+            
+            importBtn.addEventListener('click', () => {
+                importFile.click();
+            });
+            
+            importFile.addEventListener('change', importEntries);
+            
+            entryForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveEntry();
+            });
+            
+            searchDate.addEventListener('change', function() {
+                renderJournalEntries();
+            });
+            
+            toggleSummary.addEventListener('click', function() {
+                viewSummaryContainer.classList.toggle('expanded');
+            });
+            
+            editEntryBtn.addEventListener('click', function() {
+                if (currentViewEntryId) {
+                    editEntry(currentViewEntryId);
+                }
+            });
+            
+            deleteEntryBtn.addEventListener('click', function() {
+                if (currentViewEntryId) {
+                    if (confirm('Are you sure you want to delete this entry?')) {
+                        deleteEntry(currentViewEntryId);
+                    }
+                }
+            });
+            
+            // Functions
+            function renderJournalEntries() {
+                journalContainer.innerHTML = '';
+                
+                let filteredEntries = [...entries];
+                const searchValue = searchDate.value;
+                
+                if (searchValue) {
+                    filteredEntries = filteredEntries.filter(entry => entry.date === searchValue);
+                }
+                
+                if (filteredEntries.length === 0) {
+                    updateNoEntriesMessage();
+                    return;
+                }
+                
+                noEntries.classList.add('hidden');
+                
+                // Group entries by year
+                const entriesByYear = groupBy(filteredEntries, 'year');
+                
+                // Sort years in descending order (newest first)
+                const sortedYears = Object.keys(entriesByYear).sort((a, b) => b - a);
+                
+                sortedYears.forEach(year => {
+                    const yearEntries = entriesByYear[year];
+                    
+                    // Create year container
+                    const yearContainer = document.createElement('div');
+                    yearContainer.className = 'mb-8';
+                    
+                    // Year header
+                    const yearHeader = document.createElement('div');
+                    yearHeader.className = 'flex items-center cursor-pointer mb-4';
+                    yearHeader.innerHTML = `
+                        <h2 class="text-2xl neon-purple mr-4">${year}</h2>
+                        <span class="neon-green text-sm">(${yearEntries.length} entries)</span>
+                    `;
+                    
+                    // Year content (collapsible)
+                    const yearContent = document.createElement('div');
+                    yearContent.className = 'collapsible-content expanded';
+                    
+                    // Group entries by month
+                    const entriesByMonth = groupBy(yearEntries, 'month');
+                    
+                    // Sort months in descending order
+                    const sortedMonths = Object.keys(entriesByMonth).sort((a, b) => b - a);
+                    
+                    sortedMonths.forEach(month => {
+                        const monthEntries = entriesByMonth[month];
+                        const monthName = new Date(year, month - 1, 1).toLocaleString('default', { month: 'long' });
+                        
+                        // Month container
+                        const monthContainer = document.createElement('div');
+                        monthContainer.className = 'ml-4 mb-6';
+                        
+                        // Month header
+                        const monthHeader = document.createElement('div');
+                        monthHeader.className = 'flex items-center cursor-pointer mb-3';
+                        monthHeader.innerHTML = `
+                            <h3 class="text-xl neon-green mr-4">${monthName}</h3>
+                            <span class="text-purple-300 text-sm">(${monthEntries.length} entries)</span>
+                        `;
+                        
+                        // Month content (collapsible)
+                        const monthContent = document.createElement('div');
+                        monthContent.className = 'collapsible-content expanded';
+                        
+                        // Group entries by week
+                        const entriesByWeek = groupByWeek(monthEntries, year, month);
+                        
+                        // Sort weeks in descending order
+                        const sortedWeeks = Object.keys(entriesByWeek).sort((a, b) => b - a);
+                        
+                        sortedWeeks.forEach(week => {
+                            const weekEntries = entriesByWeek[week];
+                            
+                            // Week container
+                            const weekContainer = document.createElement('div');
+                            weekContainer.className = 'ml-6 mb-4';
+                            
+                            // Week header
+                            const weekHeader = document.createElement('div');
+                            weekHeader.className = 'flex items-center cursor-pointer mb-2';
+                            weekHeader.innerHTML = `
+                                <h4 class="text-lg text-purple-300 mr-4">Week ${week}</h4>
+                                <span class="text-gray-400 text-sm">(${weekEntries.length} entries)</span>
+                            `;
+                            
+                            // Week content (collapsible)
+                            const weekContent = document.createElement('div');
+                            weekContent.className = 'collapsible-content expanded';
+                            
+                            // Sort day entries by date (newest first)
+                            weekEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
+                            
+                            // Create entry cards
+                            weekEntries.forEach(entry => {
+                                const entryCard = createEntryCard(entry);
+                                weekContent.appendChild(entryCard);
+                            });
+                            
+                            // Toggle week content on header click
+                            weekHeader.addEventListener('click', () => {
+                                weekContent.classList.toggle('expanded');
+                            });
+                            
+                            weekContainer.appendChild(weekHeader);
+                            weekContainer.appendChild(weekContent);
+                            monthContent.appendChild(weekContainer);
+                        });
+                        
+                        // Toggle month content on header click
+                        monthHeader.addEventListener('click', () => {
+                            monthContent.classList.toggle('expanded');
+                        });
+                        
+                        monthContainer.appendChild(monthHeader);
+                        monthContainer.appendChild(monthContent);
+                        yearContent.appendChild(monthContainer);
+                    });
+                    
+                    // Toggle year content on header click
+                    yearHeader.addEventListener('click', () => {
+                        yearContent.classList.toggle('expanded');
+                    });
+                    
+                    yearContainer.appendChild(yearHeader);
+                    yearContainer.appendChild(yearContent);
+                    journalContainer.appendChild(yearContainer);
+                });
+            }
+            
+            function groupBy(array, property) {
+                return array.reduce((acc, obj) => {
+                    const key = obj[property];
+                    if (!acc[key]) {
+                        acc[key] = [];
+                    }
+                    acc[key].push(obj);
+                    return acc;
+                }, {});
+            }
+            
+            function groupByWeek(entries, year, month) {
+                return entries.reduce((acc, entry) => {
+                    const date = new Date(entry.date);
+                    const firstDayOfMonth = new Date(year, month - 1, 1);
+                    const firstDayOfWeek = firstDayOfMonth.getDay(); // 0 (Sunday) to 6 (Saturday)
+                    
+                    // Calculate the week number
+                    const dayOfMonth = date.getDate();
+                    const weekNumber = Math.ceil((dayOfMonth + firstDayOfWeek) / 7);
+                    
+                    if (!acc[weekNumber]) {
+                        acc[weekNumber] = [];
+                    }
+                    acc[weekNumber].push(entry);
+                    return acc;
+                }, {});
+            }
+            
+            function createEntryCard(entry) {
+                const entryDate = new Date(entry.date);
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                const formattedDate = entryDate.toLocaleDateString('en-US', options);
+                
+                const card = document.createElement('div');
+                card.className = 'entry-card neon-border rounded-lg p-4 mb-4 ml-8 cursor-pointer';
+                card.dataset.id = entry.id;
+                
+                // Truncate content for card view
+                const truncatedContent = entry.content.length > 100 
+                    ? entry.content.substring(0, 100) + '...' 
+                    : entry.content;
+                
+                const truncatedQuote = entry.quote && entry.quote.length > 50 
+                    ? entry.quote.substring(0, 50) + '...' 
+                    : entry.quote;
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <h3 class="text-lg neon-purple mb-1">${entry.title}</h3>
+                        <span class="text-xs neon-green">${formattedDate}</span>
+                    </div>
+                    ${entry.quote ? `<p class="text-sm text-gray-400 mb-2 italic">"${truncatedQuote}"</p>` : ''}
+                    <p class="text-gray-300 text-sm">${truncatedContent}</p>
+                `;
+                
+                card.addEventListener('click', () => {
+                    viewEntry(entry.id);
+                });
+                
+                return card;
+            }
+            
+            function viewEntry(id) {
+                const entry = entries.find(e => e.id === id);
+                if (!entry) return;
+                
+                currentViewEntryId = id;
+                
+                const entryDate = new Date(entry.date);
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                const formattedDate = entryDate.toLocaleDateString('en-US', options);
+                
+                viewTitle.textContent = 'ENTRY DETAILS';
+                viewDate.textContent = formattedDate;
+                viewEntryTitle.textContent = entry.title;
+                viewQuote.textContent = entry.quote || 'No quote/paragraph provided';
+                viewContent.textContent = entry.content;
+                viewSummary.textContent = entry.summary || 'No summary provided';
+                
+                // Reset summary container
+                viewSummaryContainer.classList.remove('expanded');
+                
+                viewModal.classList.remove('hidden');
+            }
+            
+            function editEntry(id) {
+                const entry = entries.find(e => e.id === id);
+                if (!entry) return;
+                
+                entryId.value = entry.id;
+                entryDate.value = entry.date;
+                entryTitle.value = entry.title;
+                entryQuote.value = entry.quote || '';
+                entryContent.value = entry.content;
+                entrySummary.value = entry.summary || '';
+                
+                document.getElementById('modalTitle').textContent = 'EDIT ENTRY';
+                viewModal.classList.add('hidden');
+                entryModal.classList.remove('hidden');
+            }
+            
+            function deleteEntry(id) {
+                entries = entries.filter(e => e.id !== id);
+                saveToLocalStorage();
+                renderJournalEntries();
+                updateNoEntriesMessage();
+                viewModal.classList.add('hidden');
+            }
+            
+            function saveEntry() {
+                const id = entryId.value || generateId();
+                const date = entryDate.value;
+                const title = entryTitle.value.trim();
+                const quote = entryQuote.value.trim();
+                const content = entryContent.value.trim();
+                const summary = entrySummary.value.trim();
+                
+                if (!date || !title || !content) {
+                    alert('Please fill in all required fields (Date, Title, and Thoughts)');
+                    return;
+                }
+                
+                const entryDateObj = new Date(date);
+                const year = entryDateObj.getFullYear();
+                const month = entryDateObj.getMonth() + 1; // Months are 0-indexed
+                
+                const entry = {
+                    id,
+                    date,
+                    year,
+                    month,
+                    title,
+                    quote: quote || null,
+                    content,
+                    summary: summary || null
+                };
+                
+                // If editing, replace the existing entry
+                if (entryId.value) {
+                    const index = entries.findIndex(e => e.id === id);
+                    if (index !== -1) {
+                        entries[index] = entry;
+                    }
+                } else {
+                    // Add new entry
+                    entries.unshift(entry);
+                }
+                
+                saveToLocalStorage();
+                renderJournalEntries();
+                entryModal.classList.add('hidden');
+            }
+            
+            function saveToLocalStorage() {
+                localStorage.setItem('nebulaJournalEntries', JSON.stringify(entries));
+                updateNoEntriesMessage();
+            }
+            
+            function updateNoEntriesMessage() {
+                if (entries.length === 0) {
+                    noEntries.classList.remove('hidden');
+                } else {
+                    noEntries.classList.add('hidden');
+                }
+            }
+            
+            function generateId() {
+                return Date.now().toString(36) + Math.random().toString(36).substr(2);
+            }
+            
+            function exportEntries() {
+                const dataStr = JSON.stringify(entries, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                
+                const exportFileDefaultName = `nebula-journal-backup-${new Date().toISOString().split('T')[0]}.json`;
+                
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+            }
+            
+            function importEntries(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const importedEntries = JSON.parse(e.target.result);
+                        
+                        if (Array.isArray(importedEntries) && importedEntries.length > 0) {
+                            if (confirm(`This will import ${importedEntries.length} entries. Continue?`)) {
+                                entries = importedEntries;
+                                saveToLocalStorage();
+                                renderJournalEntries();
+                                backupModal.classList.add('hidden');
+                                alert('Entries imported successfully!');
+                            }
+                        } else {
+                            alert('The file does not contain valid journal entries.');
+                        }
+                    } catch (error) {
+                        alert('Error reading the file. Please make sure it is a valid JSON backup file.');
+                        console.error(error);
+                    }
+                };
+                reader.readAsText(file);
+                
+                // Reset file input
+                e.target.value = '';
+            }
+        });
+    </script>
+</body>
+</html>
